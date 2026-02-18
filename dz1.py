@@ -2,13 +2,18 @@ import asyncio
 import requests
 # import dp - убрал при проверке
 import aiohttp
+import os
 
+from googletrans import Translator
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import CommandStart, Command
 from aiogram.types import Message, FSInputFile
+from gtts import gTTS
 
 from config import TOKEN, WEATHER_API_KEY
 import random
+
+translator = Translator()
 
 bot = Bot(token=TOKEN)
 dp = Dispatcher()
@@ -57,6 +62,17 @@ async def voice(message:Message):
     voice = FSInputFile("sample.ogg")
     await message.answer_voice(voice)
 
+@dp.message(Command('say'))
+async def say_voice(message: Message):
+    text = "Привет! Это голосовое сообщение от бота."
+
+    tts = gTTS(text=text, lang='ru')
+    tts.save("voice.ogg")
+
+    voice = FSInputFile("voice.ogg")
+    await message.answer_voice(voice)
+
+    os.remove("voice.ogg")
 
 @dp.message(Command('doc'))
 async def doc(message:Message):
@@ -81,7 +97,7 @@ async def training(message: Message):
    await message.answer(f"Это ваша мини-тренировка на сегодня {rand_tr}")
 
    from gtts import gTTS
-   import os
+
    tts = gTTS(text=rand_tr, lang='ru')
    tts.save("training.ogg")
    audio = FSInputFile('training.ogg')
@@ -103,7 +119,9 @@ async def react_photo(message: Message):
     list = ['Ого, какая фотка!', 'Непонятно, что это такое', 'Не отправляй мне такое больше']
     rand_answ = random.choice(list)
     await message.answer(rand_answ)
-    await bot.download(message.photo[-1], destination=f'tmp/{message.photo[-1].file_id}.jpg')
+    file_id = message.photo[-1].file_id
+    file_path = f"img/{file_id}.jpg"
+    await bot.download(message.photo[-1], destination=file_path)
 
 @dp.message(F.text == "Что такое ИИ?")
 async def aitext(message:Message):
@@ -111,7 +129,20 @@ async def aitext(message:Message):
 
 @dp.message(Command('help'))
 async def help(message:Message):
-    await message.answer('Этот бот умеет выполнять команды: \n /start \n /help \n /photo \n /weather')
+    await message.answer("Этот бот умеет выполнять команды:\n\n"
+        "/start — приветствие\n"
+        "/help — список команд\n"
+        "/weather — показать погоду\n"
+        "/photo — отправить случайную картинку\n"
+        "/video — отправить видео\n"
+        "/voice — отправить голосовое сообщение\n"
+        "/audio — отправить аудио\n"
+        "/doc — отправить документ\n"
+        "/training — случайная тренировка + голос\n"
+        "/say — голосовое сообщение от бота\n\n"
+        "Также бот:\n"
+        "📸 Сохраняет все отправленные фото в папку img\n"
+        "🇬🇧 Переводит любой текст на английский")
 
 @dp.message(CommandStart())
 async def start(message:Message):
@@ -120,9 +151,13 @@ async def start(message:Message):
 async def main():
     await dp.start_polling(bot)
 
-@dp.message()
-async def all_answer(message:Message):
-    await message.send_copy(chat_id=message.chat.id)
+# @dp.message() #Убираем для функции ниже, иначе будет все перехватывать
+# async def all_answer(message:Message):
+#     await message.send_copy(chat_id=message.chat.id)
+@dp.message(F.text)
+async def translate_text(message: Message):
+    translated = translator.translate(message.text, dest='en')
+    await message.answer(f"🇬🇧 Перевод:\n{translated.text}")
 
 
 
