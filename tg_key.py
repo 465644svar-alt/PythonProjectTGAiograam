@@ -39,7 +39,7 @@ async def cmd_info(message: Message):
         f"Фамилия: {user.last_name or 'не указана'}\n"
         f"Username: @{user.username or 'нет'}"
     )
-    
+
 # Обработка нажатия на Reply-кнопку "Привет"
 @dp.message(F.text == "Привет")
 async def reply_hello(message: Message):
